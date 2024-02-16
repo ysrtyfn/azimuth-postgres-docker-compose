@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  #
+  # Mahzen Tarafı
+  #
+  mahzen:
+    container_name: mahzen
+    image: postgres:16.2-alpine
+    restart: always
+    shm_size: 256mb
+    secrets:
+      - mahzen-sifresi
+    # env_file:
+    #   - ./mahzen/.env
+    environment:
+      - POSTGRES_DB=azimuth
+      - POSTGRES_USER=postgres
+      - PGUSER=postgres
+      # - POSTGRES_PASSWORD=
+      - POSTGRES_PASSWORD_FILE=/run/secrets/mahzen-sifresi
+      # - POSTGRES_INITDB_ARGS="--locale-provider=icu --icu-locale=tr-TR"
+      # - LANG=tr_TR.utf8
+    networks:
+      - ag-azimuth
+    volumes:
+      - ./mahzen/dahili-muta:/var/lib/postgresql/data
+    healthcheck:
+      disable: false
+      test: ["CMD-SHELL", "pg_isready -U postgres -d azimuth"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  #
+  # Bab-ı Harici: Cloudflare vasıtasıyla zahir tarafı internete aşikar ediyoruz
+  #
+  azimuth:
+    container_name: azimuth
+    image: ghcr.io/azimuttapp/azimutt:main
+    restart: unless-stopped
+    # secrets:
+    # - mahzen-sifresi
+    # - azimuth-anahtari
+    networks:
+      - ag-azimuth
+    ports:
+      - 17110:4000
+    env_file:
+      - ./azimuth/.env
+    depends_on:
+      mahzen:
+        condition: service_healthy
+
+networks:
+  ag-azimuth: {}
+
+secrets:
+  mahzen-sifresi:
+    file: sırlar/mahzenSifresi.txt
+#   azimuth-anahtari:
+#     file: sırlar/azimuthAnahtari.txt
