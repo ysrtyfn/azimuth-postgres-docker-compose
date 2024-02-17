@@ -11,12 +11,10 @@ services:
     shm_size: 256mb
     secrets:
       - mahzen-sifresi
-    # env_file:
-    #   - ./mahzen/.env
     environment:
-      - POSTGRES_DB=azimuth
-      - POSTGRES_USER=postgres
-      - PGUSER=postgres
+      - POSTGRES_DB=${MAHZEN_ISMI}
+      - POSTGRES_USER=${MAHZEN_SAHIBI}
+      - PGUSER=${MAHZEN_SAHIBI}
       # - POSTGRES_PASSWORD=
       - POSTGRES_PASSWORD_FILE=/run/secrets/mahzen-sifresi
       # - POSTGRES_INITDB_ARGS="--locale-provider=icu --icu-locale=tr-TR"
@@ -33,21 +31,23 @@ services:
       retries: 3
 
   #
-  # Bab-ı Harici: Cloudflare vasıtasıyla zahir tarafı internete aşikar ediyoruz
+  # Azimuth Tarafı
   #
   azimuth:
     container_name: azimuth
     image: ghcr.io/azimuttapp/azimutt:main
     restart: unless-stopped
-    # secrets:
-    # - mahzen-sifresi
-    # - azimuth-anahtari
     networks:
       - ag-azimuth
     ports:
       - 17110:4000
-    env_file:
-      - ./azimuth/.env
+    environment:
+      - DATABASE_URL=postgresql://${MAHZEN_SAHIBI}:${MAHZEN_SIFRESI}@mahzen:${MAHZEN_ISKELE}/${MAHZEN_ISMI}
+      - SECRET_KEY_BASE=${AZIMUTH_ANAHTARI}
+      - PHX_HOST=${AZIMUTH_LIMAN}
+      - PORT=${AZIMUTH_ISKELE}
+      - FILE_STORAGE_ADAPTER=local
+      - AUTH_PASSWORD=true
     depends_on:
       mahzen:
         condition: service_healthy
@@ -58,5 +58,3 @@ networks:
 secrets:
   mahzen-sifresi:
     file: sırlar/mahzenSifresi.txt
-#   azimuth-anahtari:
-#     file: sırlar/azimuthAnahtari.txt
